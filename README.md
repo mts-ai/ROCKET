@@ -11,13 +11,13 @@ swiftsvd/
 │   │   └── default.yaml
 │   ├── data/
 │   │   ├── __init__.py
-│   │   └── prepare_data.py          # Your prepare_data logic
+│   │   └── prepare_data.py          # prepare_data logic (calibration data activations)
 │   ├── calib/
 │   │   ├── __init__.py
-│   │   └── calib.py                 # Calib class (Calib.build_calibration_dataset, Calib.get_s_inv_s, etc.)
+│   │   └── calib.py                 # Calib class (Calib.build_calibration_dataset, Calib.get_s_inv_s, etc.) (Whitening transform)
 │   ├── profiling/
 │   │   ├── __init__.py
-│   │   └── profiler.py              # profile_all_layers, get_k_and_sparsity, etc.
+│   │   └── profiler.py              # profile_all_layers, get_k_and_sparsity, etc. (for dynamic budget allocation)
 │   ├── compression/
 │   │   ├── __init__.py
 │   │   └── swiftsvd.py              # svd_with_magnitude_sparsity_on_v, model patching
