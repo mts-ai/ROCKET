@@ -354,11 +354,11 @@ def solve_dijkstra(
     achieved_removed_ratio = 1.0 - (total_kept / total_params)
     return allocation, allocations_ks, total_error, achieved_removed_ratio
 
-allocation, total_err, achieved_removed = solve_dijkstra(
-    layer_profiles,
-    error_lookup,
-    kept_frac_lookup,
-    total_params,
-    target_compression_ratio=0.2,   # keep 80%
-    param_precision=30000
-)
+# allocation, total_err, achieved_removed = solve_dijkstra(
+#     layer_profiles,
+#     error_lookup,
+#     kept_frac_lookup,
+#     total_params,
+#     target_compression_ratio=0.2,   # keep 80%
+#     param_precision=30000
+# )
