@@ -43,19 +43,21 @@ def main():
         )
     
     elif cfg["compression"]["method"] == "maxflow":
-        allocation, total_err, achieved_removed = solve_mckp_min_cost_flow(
+        cr_allocation, ks_allocation, total_err, achieved_removed = solve_mckp_min_cost_flow(
             layer_profiles,
             error_lookup,
             kept_frac_lookup,
+            ks_lookup,
             total_params,
             target_compression_ratio=cfg["compression"]["target_kept_ratio"],
             param_precision=cfg["compression"]["param_precision"]
         )
     else:
-        allocation, total_err, achieved_removed = solve_dijkstra(
+        cr_allocation, ks_allocation, total_err, achieved_removed = solve_dijkstra(
             layer_profiles,
             error_lookup,
             kept_frac_lookup,
+            ks_lookup,
             total_params,
             target_compression_ratio=cfg["compression"]["target_kept_ratio"],
             param_precision=cfg["compression"]["param_precision"]

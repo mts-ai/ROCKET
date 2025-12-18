@@ -86,6 +86,7 @@ def solve_mckp_min_cost_flow(
     layer_profiles,
     error_lookup,
     kept_frac_lookup,
+    ks_lookup,
     total_params,
     target_compression_ratio=0.2,
     param_precision=30000
@@ -95,7 +96,7 @@ def solve_mckp_min_cost_flow(
     scale = param_precision / total_params
     K_min_scaled = int(math.ceil(K_min * scale - 1e-5))
 
-    # Precompute candidates per layer
+    # Precompute candidates per layer: (scaled_kept, cost, cr_target, ks_ratio)
     layers = []
     for layer in layer_profiles:
         name = layer['name']
@@ -105,17 +106,17 @@ def solve_mckp_min_cost_flow(
         for cr_target in kept_frac_lookup[name][idx]:
             kept_frac = kept_frac_lookup[name][idx][cr_target]
             error = error_lookup[name][idx][cr_target]
+            ks_ratio = ks_lookup[name][idx][cr_target]
             kept = kept_frac * orig_params
             if kept <= 0 or kept > orig_params or not (0 <= error < 2.0):
                 continue
             scaled_kept = int(round(kept * scale))
-            # Scale error to integer (6 decimal precision)
             cost = int(round(error * 1_000_000))
-            candidates.append((scaled_kept, cost, cr_target))
+            candidates.append((scaled_kept, cost, cr_target, ks_ratio))
         if not candidates:
             scaled_kept = int(round(orig_params * scale))
             cost = 0
-            candidates = [(scaled_kept, cost, 1.0)]
+            candidates = [(scaled_kept, cost, 1.0, 1.0)]  # include default ks_ratio
         layers.append(candidates)
 
     max_scaled = param_precision
@@ -134,13 +135,13 @@ def solve_mckp_min_cost_flow(
 
     # Source and sink
     source = get_node_id(0, 0)
-    sink = next_id  # final super-sink
+    sink = next_id
     next_id += 1
 
     # Initialize solver
     smcf = min_cost_flow.SimpleMinCostFlow()
 
-    # Track current reachable states at each layer
+    # Track current reachable states
     current_states = {0}
 
     # Build graph layer by layer
@@ -148,12 +149,11 @@ def solve_mckp_min_cost_flow(
         next_states = set()
         for k_in in current_states:
             u = get_node_id(i, k_in)
-            for scaled_kept, cost, cr in layers[i]:
+            for scaled_kept, cost, cr, ks in layers[i]:
                 k_out = k_in + scaled_kept
                 if k_out > max_scaled:
                     continue
                 v = get_node_id(i + 1, k_out)
-                # Add arc: from u to v, capacity=1, unit cost=cost
                 smcf.add_arc_with_capacity_and_unit_cost(u, v, 1, cost)
                 next_states.add(k_out)
         current_states = next_states
@@ -170,13 +170,14 @@ def solve_mckp_min_cost_flow(
         # Fallback
         fallback_cr = target_compression_ratio
         allocation = [fallback_cr] * n_layers
+        allocations_ks = [1.0] * n_layers
         kept = target_compression_ratio * total_params
         error = sum(
             error_lookup[layer['name']][layer['idx']].get(fallback_cr, 0.1)
             for layer in layer_profiles
         )
         achieved_removed_ratio = 1.0 - (kept / total_params)
-        return allocation, error, achieved_removed_ratio
+        return allocation, allocations_ks, error, achieved_removed_ratio
 
     # Set supply/demand
     smcf.set_node_supply(source, 1)
@@ -188,20 +189,22 @@ def solve_mckp_min_cost_flow(
         # Fallback
         fallback_cr = target_compression_ratio
         allocation = [fallback_cr] * n_layers
+        allocations_ks = [1.0] * n_layers  # <-- added
         kept = target_compression_ratio * total_params
         error = sum(
             error_lookup[layer['name']][layer['idx']].get(fallback_cr, 0.1)
             for layer in layer_profiles
         )
         achieved_removed_ratio = 1.0 - (kept / total_params)
-        return allocation, error, achieved_removed_ratio
+        return allocation, allocations_ks, error, achieved_removed_ratio  # <-- updated return
 
-    # Reconstruct path: walk from source, follow arcs with flow=1
+    # Reconstruct path
     allocation = [None] * n_layers
+    allocations_ks = [None] * n_layers  # <-- new list to track ks_ratios
     current_node = source
     current_k = 0
 
-    # Build reverse lookup: node_id -> (layer, k)
+    # Build reverse lookup
     node_to_state = {v: (i, k) for (i, k), v in node_index.items()}
 
     for i in range(n_layers):
@@ -211,17 +214,17 @@ def solve_mckp_min_cost_flow(
                 head = smcf.head(arc)
                 if head == sink:
                     continue
-                # Decode head
                 if head not in node_to_state:
                     continue
                 next_layer, next_k = node_to_state[head]
                 if next_layer != i + 1:
                     continue
                 scaled_kept = next_k - current_k
-                # Match candidate
-                for cand_kept, cand_cost, cr in layers[i]:
+                # Match candidate by scaled_kept (since cost/CR may not be unique, but kept should be)
+                for cand_kept, cand_cost, cr, ks in layers[i]:
                     if cand_kept == scaled_kept:
                         allocation[i] = cr
+                        allocations_ks[i] = ks  # <-- record ks_ratio
                         found = True
                         break
                 if found:
@@ -231,17 +234,16 @@ def solve_mckp_min_cost_flow(
         if not found:
             # Fallback to first candidate
             allocation[i] = layers[i][0][2]
+            allocations_ks[i] = layers[i][0][3]  # <-- fallback ks
 
-    # Compute final metrics
+    # Compute final metrics (ks_ratios not used here)
     total_kept = 0.0
     total_error = 0.0
     for i, layer in enumerate(layer_profiles):
         name, idx = layer['name'], layer['idx']
         cr = allocation[i]
-        # Retrieve actual kept fraction (in case cr is key, not value)
         kept_frac = kept_frac_lookup[name][idx].get(cr)
         if kept_frac is None:
-            # If cr is the fraction itself (e.g., 0.8), use it
             kept_frac = cr
         kept = kept_frac * layer['orig_params']
         error = error_lookup[name][idx].get(cr, 0.1)
@@ -249,24 +251,26 @@ def solve_mckp_min_cost_flow(
         total_error += error
 
     achieved_removed_ratio = 1.0 - (total_kept / total_params)
-    return allocation, total_error, achieved_removed_ratio
+    return allocation, allocations_ks, total_error, achieved_removed_ratio
+
+import heapq
 
 def solve_dijkstra(
     layer_profiles,
     error_lookup,
     kept_frac_lookup,
+    ks_lookup,
     total_params,
     target_compression_ratio=0.8,
     param_precision=30000,
-    error_scale_factor=1_000_000  # to keep costs as integers for stability
+    error_scale_factor=1_000_000
 ):
-
     n_layers = len(layer_profiles)
     min_kept = target_compression_ratio * total_params
     scale = param_precision / total_params
     min_kept_scaled = min_kept * scale
 
-    # Precompute candidates per layer: (scaled_kept, cost_int, cr_target)
+    # Precompute candidates per layer: (scaled_kept, cost_int, cr_target, ks_ratio)
     layers = []
     for layer in layer_profiles:
         name = layer['name']
@@ -276,59 +280,55 @@ def solve_dijkstra(
         for cr_target in kept_frac_lookup[name][idx]:
             kept_frac = kept_frac_lookup[name][idx][cr_target]
             error = error_lookup[name][idx][cr_target]
+            ks_ratio = ks_lookup[name][idx][cr_target]
             kept = kept_frac * orig_params
             if kept <= 0 or kept > orig_params or not (0 <= error < 2.0):
                 continue
             scaled_kept = int(round(kept * scale))
             cost_int = int(round(error * error_scale_factor))
-            candidates.append((scaled_kept, cost_int, cr_target))
+            candidates.append((scaled_kept, cost_int, cr_target, ks_ratio))
         if not candidates:
             scaled_kept = int(round(orig_params * scale))
             cost_int = 0
-            candidates = [(scaled_kept, cost_int, 1.0)]
+            candidates = [(scaled_kept, cost_int, 1.0, 1.0)]  # include default ks_ratio
         layers.append(candidates)
 
     max_scaled = param_precision
 
-    # State: (layer_index, kept_scaled)
-    # dist[(i, k)] = (min_cost_int, path_choices)
+    # dist[(i, kept_scaled)] = (min_cost_int, cr_choices, ks_choices)
     dist = {}
-    # Priority queue: (total_cost_int, layer_index, kept_scaled, path_choices)
+    # Priority queue: (cost_int, i, kept_scaled, cr_choices, ks_choices)
     pq = []
-    heapq.heappush(pq, (0, 0, 0, []))
+    heapq.heappush(pq, (0, 0, 0, [], []))
 
-    best_solution = None  # (total_cost_int, kept_scaled, choices)
+    best_solution = None  # (cost_int, kept_scaled, cr_choices, ks_choices)
 
     while pq:
-        cost_int, i, kept_scaled, choices = heapq.heappop(pq)
+        cost_int, i, kept_scaled, cr_choices, ks_choices = heapq.heappop(pq)
 
-        # If we've already seen a better way to reach (i, kept_scaled), skip
         if (i, kept_scaled) in dist:
             continue
-        dist[(i, kept_scaled)] = (cost_int, choices)
+        dist[(i, kept_scaled)] = (cost_int, cr_choices, ks_choices)
 
-        # If we've processed all layers, check if this state is feasible
         if i == n_layers:
             if kept_scaled >= min_kept_scaled - 1e-5:
                 if best_solution is None or cost_int < best_solution[0]:
-                    best_solution = (cost_int, kept_scaled, choices)
-            continue  # Don't expand beyond last layer
+                    best_solution = (cost_int, kept_scaled, cr_choices, ks_choices)
+            continue
 
-        # Expand all candidates in current layer i
-        for scaled_kept, cand_cost, cr in layers[i]:
+        for scaled_kept, cand_cost, cr, ks in layers[i]:
             new_kept = kept_scaled + scaled_kept
             if new_kept > max_scaled:
                 continue
             new_cost = cost_int + cand_cost
-            new_choices = choices + [cr]
-            # We only push if we haven't seen this state with lower cost
+            new_cr_choices = cr_choices + [cr]
+            new_ks_choices = ks_choices + [ks]
             if (i + 1, new_kept) not in dist:
-                heapq.heappush(pq, (new_cost, i + 1, new_kept, new_choices))
+                heapq.heappush(pq, (new_cost, i + 1, new_kept, new_cr_choices, new_ks_choices))
 
     # --- Handle solution or fallback ---
     if best_solution is not None:
-        _, final_kept_scaled, allocation = best_solution
-        # Reconstruct actual kept and error using original (unscaled) values
+        _, final_kept_scaled, allocation, allocations_ks = best_solution
         total_kept = 0.0
         total_error = 0.0
         for i, layer in enumerate(layer_profiles):
@@ -336,15 +336,15 @@ def solve_dijkstra(
             cr = allocation[i]
             kept_frac = kept_frac_lookup[name][idx].get(cr)
             if kept_frac is None:
-                kept_frac = cr  # assume cr is the fraction itself
+                kept_frac = cr
             kept = kept_frac * layer['orig_params']
             error = error_lookup[name][idx].get(cr, 0.1)
             total_kept += kept
             total_error += error
     else:
-        # Fallback: uniform compression
         fallback_cr = target_compression_ratio
         allocation = [fallback_cr] * n_layers
+        allocations_ks = [1.0] * n_layers  # fallback ks_ratio
         total_kept = fallback_cr * total_params
         total_error = sum(
             error_lookup[layer['name']][layer['idx']].get(fallback_cr, 0.1)
@@ -352,7 +352,8 @@ def solve_dijkstra(
         )
 
     achieved_removed_ratio = 1.0 - (total_kept / total_params)
-    return allocation, total_error, achieved_removed_ratio
+    return allocation, allocations_ks, total_error, achieved_removed_ratio
+
 allocation, total_err, achieved_removed = solve_dijkstra(
     layer_profiles,
     error_lookup,
