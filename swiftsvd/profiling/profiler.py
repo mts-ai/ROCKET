@@ -4,7 +4,7 @@ from tqdm import tqdm
 from swiftsvd.utils.model_utils import get_weight_transposed, get_k_and_sparsity, frobenius_distance
 from swiftsvd.calib.calib import Calib
 
-def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio=2.0):
+def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratios=[2.0]):
     if not isinstance(index, list):
         index = [index]
     d1, d2 = w1.shape
@@ -29,51 +29,56 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
 
         results = []
         for cr in cr_candidates:
-            r_float, sparsity_ratio = get_k_and_sparsity(cr, d1, d2, L, ks_ratio)
-            r = max(1, min(int(r_float), max_r))
+            best_error = 1e12
+            for ks_ratio in ks_ratios:
+                r_float, sparsity_ratio = get_k_and_sparsity(cr, d1, d2, L, ks_ratio)
+                r = max(1, min(int(r_float), max_r))
 
-            u = u_full[:, :r]
-            sigma = sigma_full[:r]
-            v = v_full[:r, :]
-            sqrt_sigma = sigma ** 0.5
-            u = u @ torch.diag(sqrt_sigma)
-            v = torch.diag(sqrt_sigma) @ v
+                u = u_full[:, :r]
+                sigma = sigma_full[:r]
+                v = v_full[:r, :]
+                sqrt_sigma = sigma ** 0.5
+                u = u @ torch.diag(sqrt_sigma)
+                v = torch.diag(sqrt_sigma) @ v
 
-            if 0 < sparsity_ratio < 1:
-                v_weighted = v * output_importance.unsqueeze(0)
-                v_abs = v_weighted.abs()
-                num_rows = v_abs.shape[0]
-                num_keep = max(1, int(num_rows * (1 - sparsity_ratio)))
-                kth = num_rows - num_keep
-                if kth > 0:
-                    thresholds = torch.kthvalue(v_abs, kth, dim=0).values
-                    mask = v_abs > thresholds.unsqueeze(0)
+                if 0 < sparsity_ratio < 1:
+                    v_weighted = v * output_importance.unsqueeze(0)
+                    v_abs = v_weighted.abs()
+                    num_rows = v_abs.shape[0]
+                    num_keep = max(1, int(num_rows * (1 - sparsity_ratio)))
+                    kth = num_rows - num_keep
+                    if kth > 0:
+                        thresholds = torch.kthvalue(v_abs, kth, dim=0).values
+                        mask = v_abs > thresholds.unsqueeze(0)
+                    else:
+                        mask = torch.ones_like(v_abs, dtype=torch.bool)
+                    v_sparse = v * mask
                 else:
-                    mask = torch.ones_like(v_abs, dtype=torch.bool)
-                v_sparse = v * mask
-            else:
-                v_sparse = v
+                    v_sparse = v
 
-            G = v_sparse @ v_sparse.t()
-            G_reg = G + torch.eye(r, device=G.device, dtype=G.dtype) * 1e-8
-            WVt = x @ v_sparse.t()
-            try:
-                cf = torch.linalg.cholesky(G_reg)
-                U_opt = torch.cholesky_solve(WVt.t().contiguous(), cf).t()
-            except:
-                U_opt = torch.linalg.solve(G_reg, WVt.t()).t()
+                G = v_sparse @ v_sparse.t()
+                G_reg = G + torch.eye(r, device=G.device, dtype=G.dtype) * 1e-8
+                WVt = x @ v_sparse.t()
+                try:
+                    cf = torch.linalg.cholesky(G_reg)
+                    U_opt = torch.cholesky_solve(WVt.t().contiguous(), cf).t()
+                except:
+                    U_opt = torch.linalg.solve(G_reg, WVt.t()).t()
 
-            w1_recon = (inv_s @ U_opt) @ v_sparse
-            err = frobenius_distance(w1_recon, w1).item()
-            params_used = r * (d1 + d2)
-            actual_cr = params_used / orig_params
-            results.append((cr, actual_cr, err))
+                w1_recon = (inv_s @ U_opt) @ v_sparse
+                err = frobenius_distance(w1_recon, w1).item()
+                params_used = r * (d1 + d2)
+                actual_cr = params_used / orig_params
+                if err < best_error:
+                    res = ((cr, actual_cr, err, ks_ratio))
+                    best_error = err
+            results.append(res)
 
     del ss, inv_s, w1, x, u_full, sigma_full, v_full
     torch.cuda.empty_cache()
     return results
 
-def profile_all_layers(model, module_names, calib_data, cr_candidates, ks_ratio=2.0):
+def profile_all_layers(model, module_names, calib_data, cr_candidates, ks_ratios=[2.0]):
     layer_profiles = []
     total_params = 0
     for name in module_names:
@@ -82,7 +87,7 @@ def profile_all_layers(model, module_names, calib_data, cr_candidates, ks_ratio=
             orig_params = w1.numel()
             total_params += orig_params
             options = profile_layer_once(w1, name=name, index=idx, calib_data=calib_data,
-                                         cr_candidates=cr_candidates, ks_ratio=ks_ratio)
+                                         cr_candidates=cr_candidates, ks_ratios=ks_ratios)
             layer_profiles.append({
                 'name': name,
                 'idx': idx,

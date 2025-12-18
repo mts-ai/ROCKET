@@ -39,19 +39,19 @@ def compute_actual_compression(cr_nested, d, num_layers):
 
     for layer_idx in range(num_layers):
         for proj in ['self_attn.q_proj', 'self_attn.k_proj', 'self_attn.v_proj', 'self_attn.o_proj']:
-            cr = cr_nested[proj][layer_idx]
+            cr = cr_nested[proj][layer_idx]['cr']
             orig_p = attn_params
             kept_p = cr * orig_p
             total_orig += orig_p
             total_kept += kept_p
         for proj in ['mlp.gate_proj', 'mlp.up_proj']:
-            cr = cr_nested[proj][layer_idx]
+            cr = cr_nested[proj][layer_idx]['cr']
             orig_p = mlp_gate_up
             kept_p = cr * orig_p
             total_orig += orig_p
             total_kept += kept_p
         proj = 'mlp.down_proj'
-        cr = cr_nested[proj][layer_idx]
+        cr = cr_nested[proj][layer_idx]['cr']
         orig_p = mlp_down
         kept_p = cr * orig_p
         total_orig += orig_p

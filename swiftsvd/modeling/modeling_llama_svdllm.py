@@ -172,12 +172,15 @@ class LlamaMLP_SVD(nn.Module):
         self.config = config
         self.hidden_size = config.hidden_size
         self.intermediate_size = config.intermediate_size
-        gate_cr = config.compression_ratio["mlp.gate_proj"][str(layer_idx)]
-        up_cr = config.compression_ratio["mlp.up_proj"][str(layer_idx)]
-        down_cr = config.compression_ratio["mlp.down_proj"][str(layer_idx)]
-        self.gate_low_rank, _ = get_k_and_sparsity(gate_cr, self.hidden_size, self.intermediate_size, 2.0)
-        self.up_low_rank, _ = get_k_and_sparsity(up_cr, self.hidden_size, self.intermediate_size, 2.0)
-        self.down_low_rank, _ = get_k_and_sparsity(down_cr, self.intermediate_size, self.hidden_size, 2.0)
+        gate_cr = config.compression_ratio["mlp.gate_proj"][str(layer_idx)]['cr']
+        up_cr = config.compression_ratio["mlp.up_proj"][str(layer_idx)]['cr']
+        down_cr = config.compression_ratio["mlp.down_proj"][str(layer_idx)]['cr']
+        gate_ks = config.compression_ratio["mlp.gate_proj"][str(layer_idx)]['ks']
+        up_ks = config.compression_ratio["mlp.up_proj"][str(layer_idx)]['ks']
+        down_ks = config.compression_ratio["mlp.down_proj"][str(layer_idx)]['ks']
+        self.gate_low_rank, _ = get_k_and_sparsity(gate_cr, self.hidden_size, self.intermediate_size, gate_ks)
+        self.up_low_rank, _ = get_k_and_sparsity(up_cr, self.hidden_size, self.intermediate_size, up_ks)
+        self.down_low_rank, _ = get_k_and_sparsity(down_cr, self.intermediate_size, self.hidden_size, down_ks)
         self.gate_proj_u = nn.Linear(self.hidden_size, self.gate_low_rank, bias=config.mlp_bias)
         self.gate_proj_v = nn.Linear(self.gate_low_rank, self.intermediate_size, bias=config.mlp_bias)
         self.up_proj_u = nn.Linear(self.hidden_size, self.up_low_rank, bias=config.mlp_bias)
@@ -316,26 +319,32 @@ class LlamaAttention_SVD(nn.Module):
         self.attention_dropout = config.attention_dropout
         self.is_causal = True
 
-        q_cr = config.compression_ratio["self_attn.q_proj"][str(layer_idx)]
-        k_cr = config.compression_ratio["self_attn.k_proj"][str(layer_idx)]
-        v_cr = config.compression_ratio["self_attn.v_proj"][str(layer_idx)]
-        o_cr = config.compression_ratio["self_attn.o_proj"][str(layer_idx)]
+        q_cr = config.compression_ratio["self_attn.q_proj"][str(layer_idx)]['cr']
+        k_cr = config.compression_ratio["self_attn.k_proj"][str(layer_idx)]['cr']
+        v_cr = config.compression_ratio["self_attn.v_proj"][str(layer_idx)]['cr']
+        o_cr = config.compression_ratio["self_attn.o_proj"][str(layer_idx)]['cr']
+
+        q_ks = config.compression_ratio["self_attn.q_proj"][str(layer_idx)]['ks']
+        k_ks = config.compression_ratio["self_attn.k_proj"][str(layer_idx)]['ks']
+        v_ks = config.compression_ratio["self_attn.v_proj"][str(layer_idx)]['ks']
+        o_ks = config.compression_ratio["self_attn.o_proj"][str(layer_idx)]['ks']
+
         self.q_low_rank, _ = get_k_and_sparsity(q_cr,
                                                 config.hidden_size,
                                                 config.num_attention_heads * self.head_dim,
-                                                2.0)
+                                                q_ks)
         self.k_low_rank, _ = get_k_and_sparsity(k_cr,
                                                 config.hidden_size,
                                                 config.num_key_value_heads * self.head_dim,
-                                                2.0)
+                                                k_ks)
         self.v_low_rank, _ = get_k_and_sparsity(v_cr,
                                                 config.hidden_size,
                                                 config.num_key_value_heads * self.head_dim,
-                                                2.0)
+                                                v_ks)
         self.o_low_rank, _ = get_k_and_sparsity(o_cr,
                                                 config.num_attention_heads * self.head_dim,
                                                 config.hidden_size,
-                                                2.0)
+                                                o_ks)
         
 
         self.q_proj_u = nn.Linear(

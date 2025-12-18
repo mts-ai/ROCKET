@@ -3,7 +3,7 @@ import numpy as np
 def preprocess_layer_profiles(layer_profiles, reference_cr=0.2):
     errors_at_ref_cr = []
     for layer in layer_profiles:
-        for cr_target, actual_cr, err in layer['options']:
+        for cr_target, actual_cr, err, ks_ratio in layer['options']:
             if abs(cr_target - reference_cr) < 1e-6:
                 errors_at_ref_cr.append(err)
                 break
@@ -17,7 +17,7 @@ def preprocess_layer_profiles(layer_profiles, reference_cr=0.2):
 
     filtered_profiles = []
     for layer in layer_profiles:
-        filtered_options = [(cr, ac, err) for cr, ac, err in layer['options'] if err <= avg_error and 0 <= err < 2.0]
+        filtered_options = [(cr, ac, err, ks) for cr, ac, err, ks in layer['options'] if err <= avg_error and 0 <= err < 2.0]
         if not filtered_options:
             best_option = min(layer['options'], key=lambda x: x[2])
             filtered_options = [best_option]
@@ -33,12 +33,15 @@ def preprocess_layer_profiles(layer_profiles, reference_cr=0.2):
 def build_error_and_kept_lookup(layer_profiles):
     error_lookup = {}
     kept_frac_lookup = {}
+    ks_lookup = {}
     for layer in layer_profiles:
         name = layer['name']
         idx = layer['idx']
         error_lookup.setdefault(name, {}).setdefault(idx, {})
         kept_frac_lookup.setdefault(name, {}).setdefault(idx, {})
-        for cr_target, actual_cr, err in layer['options']:
+        ks_lookup.setdefault(name, {}).setdefault(idx, {})
+        for cr_target, actual_cr, err, ks_ratio in layer['options']:
             error_lookup[name][idx][cr_target] = err
             kept_frac_lookup[name][idx][cr_target] = cr_target
-    return error_lookup, kept_frac_lookup
+            ks_lookup[name][idx][cr_target] = ks_ratio
+    return error_lookup, kept_frac_lookup, ks_lookup
