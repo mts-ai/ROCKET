@@ -168,7 +168,7 @@ def svd_with_magnitude_sparsity_on_v(
             v_final = dequantize_int8_per_row(v_int8, v_scales)
         w1_recon = u_final @ v_final
         err_v = frobenius_distance(w1_recon, w1)
-        print(f"[{name}][{index}] CR, KS={cr_ks:.3f} | Rank={r} | Sparsity={sparsity_ratio:.3f} | Err={err_v:.6f}")
+        print(f"[{name}][{index}] CR, KS={cr_ks} | Rank={r} | Sparsity={sparsity_ratio:.3f} | Err={err_v:.6f}")
    
         
     del sigma, w1, ss, inv_s, u, v, x, G, G_reg, WVt
