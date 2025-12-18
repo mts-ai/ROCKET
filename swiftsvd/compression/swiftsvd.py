@@ -68,7 +68,7 @@ def svd_with_magnitude_sparsity_on_v(
             lambda_reg * torch.log(imp_w + 1e-12)
         )
         # 4. Per-column sparsification on imp_combined
-        sparsity_ratio = min(max(sparsity_ratio, 0.0), 1.0) + 0.03
+        sparsity_ratio = min(max(sparsity_ratio, 0.0), 1.0) + 0.005
         if sparsity_ratio <= 0.0:
             v_sparse = v_full.clone()
         elif sparsity_ratio >= 1.0:
@@ -87,12 +87,12 @@ def svd_with_magnitude_sparsity_on_v(
         
             v_sparse = v_full * mask  # ← apply to original v_full
         # After initial v_sparse
-        error_per_entry = (v_full * (~mask)).abs()  # contribution to error if zeroed
+        error_per_entry = (imp_w * (~mask)).abs()  # contribution to error if zeroed
         # But since u is orthonormal, error ∝ |v_full|^2
         recovery_score = error_per_entry
         
         # Recover top 1% of zeros (or fixed number)
-        num_recover = max(1, int(mask.numel() * 0.03))
+        num_recover = max(1, int(mask.numel() * 0.005))
         flat_score = recovery_score.view(-1)
         if num_recover < flat_score.numel():
             threshold = torch.kthvalue(flat_score, flat_score.numel() - num_recover).values
