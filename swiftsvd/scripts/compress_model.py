@@ -6,7 +6,7 @@ import shutil
 from swiftsvd.utils.seed import seed_all
 from swiftsvd.utils.io import load_json
 from swiftsvd.profiling.postprocess import preprocess_layer_profiles, build_error_and_kept_lookup
-from swiftsvd.compression.mckp import solve_mckp_target_based, solve_mckp_min_cost_flow
+from swiftsvd.compression.mckp import solve_mckp_target_based, solve_mckp_min_cost_flow, solve_dijkstra
 from swiftsvd.compression.swiftsvd import svd_with_magnitude_sparsity_on_v
 from swiftsvd.utils.model_utils import get_weight_transposed, compute_actual_compression
 from swiftsvd.modeling.modeling_llama_svdllm import LlamaForCausalLM
@@ -31,15 +31,35 @@ def main():
     adam_refinement_step = cfg["compression"]["adam_refine_steps"]
     layer_profiles, _ = preprocess_layer_profiles(layer_profiles_raw, reference_cr=cfg["compression"]["target_kept_ratio"])
     error_lookup, kept_frac_lookup, ks_lookup = build_error_and_kept_lookup(layer_profiles)
-    cr_allocation, ks_allocation, total_err, achieved_removed = solve_mckp_target_based(
-        layer_profiles,
-        error_lookup,
-        kept_frac_lookup,
-        ks_lookup,
-        total_params,
-        target_kept_ratio=cfg["compression"]["target_kept_ratio"],
-        param_precision=cfg["compression"]["param_precision"]
-    )
+    if cfg["compression"]["method"] == "knapsack":
+        cr_allocation, ks_allocation, total_err, achieved_removed = solve_mckp_target_based(
+            layer_profiles,
+            error_lookup,
+            kept_frac_lookup,
+            ks_lookup,
+            total_params,
+            target_kept_ratio=cfg["compression"]["target_kept_ratio"],
+            param_precision=cfg["compression"]["param_precision"]
+        )
+    
+    elif cfg["compression"]["method"] == "maxflow":
+        allocation, total_err, achieved_removed = solve_mckp_min_cost_flow(
+            layer_profiles,
+            error_lookup,
+            kept_frac_lookup,
+            total_params,
+            target_compression_ratio=cfg["compression"]["target_kept_ratio"],
+            param_precision=cfg["compression"]["param_precision"]
+        )
+    else:
+        allocation, total_err, achieved_removed = solve_dijkstra(
+            layer_profiles,
+            error_lookup,
+            kept_frac_lookup,
+            total_params,
+            target_compression_ratio=cfg["compression"]["target_kept_ratio"],
+            param_precision=cfg["compression"]["param_precision"]
+        )
     
 
     cr_nested = {}
