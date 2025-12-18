@@ -30,6 +30,7 @@ compression:
   dobi_like: false
   output_dir: "/share/a.ammar/swift_svd/llama3_1b_swift_svd_20_new"
   adam_refine_steps: 100
+  method: knapsack
 
 evaluation:
   tasks: ["wikitext"] #["mmlu", "arc_easy", "arc_challenge", "hellaswag", "piqa", "lambada_openai", "race", "sciq"] #
