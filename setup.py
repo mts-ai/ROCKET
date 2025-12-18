@@ -17,11 +17,11 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "swiftsvd-gather-activations=scripts.gather_activations:main",
-            "swiftsvd-profile-layers=scripts.profile_layers:main",
-            "swiftsvd-compress=scripts.compress_model:main",
-            "swiftsvd-evaluate=scripts.evaluate_model:main",
-            "swiftsvd-run-pipeline=scripts.run_full_pipeline:main",
+            "swiftsvd-gather-activations=swiftsvd.scripts.gather_activations:main",
+            "swiftsvd-profile-layers=swiftsvd.scripts.profile_layers:main",
+            "swiftsvd-compress=swiftsvd.scripts.compress_model:main",
+            "swiftsvd-evaluate=swiftsvd.scripts.evaluate_model:main",
+            "swiftsvd-run-pipeline=swiftsvd.scripts.run_full_pipeline:main",
         ],
     },
     author="Ammar",
