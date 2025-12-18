@@ -24,8 +24,7 @@ def svd_with_magnitude_sparsity_on_v(
     w1,
     name,
     index,
-    cr_target,
-    ks_ratio,
+    cr_ks,
     calib_data,
     dobi_like = False,
     down=False,
@@ -44,7 +43,7 @@ def svd_with_magnitude_sparsity_on_v(
         u, sigma, v = torch.linalg.svd(x, full_matrices=False)
         _, importance,_ = torch.linalg.svd(w1, full_matrices=False)
         d1, d2 = w1.shape
-        r, sparsity_ratio = get_k_and_sparsity(cr_target, d1, d2, 1, ks_ratio)
+        r, sparsity_ratio = get_k_and_sparsity(cr_ks['cr'], d1, d2, 1, cr_ks['ks'])
         r = max(1, min(r, min(d1, d2)))
 
         # After SVD
@@ -169,7 +168,7 @@ def svd_with_magnitude_sparsity_on_v(
             v_final = dequantize_int8_per_row(v_int8, v_scales)
         w1_recon = u_final @ v_final
         err_v = frobenius_distance(w1_recon, w1)
-        print(f"[{name}][{index}] CR={cr_target:.3f} | Rank={r} | Sparsity={sparsity_ratio:.3f} | Err={err_v:.6f}")
+        print(f"[{name}][{index}] CR, KS={cr_ks:.3f} | Rank={r} | Sparsity={sparsity_ratio:.3f} | Err={err_v:.6f}")
    
         
     del sigma, w1, ss, inv_s, u, v, x, G, G_reg, WVt

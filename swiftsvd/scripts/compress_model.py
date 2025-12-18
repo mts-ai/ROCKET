@@ -30,11 +30,12 @@ def main():
     total_params = cache["total_params"]
     adam_refinement_step = cfg["compression"]["adam_refine_steps"]
     layer_profiles, _ = preprocess_layer_profiles(layer_profiles_raw, reference_cr=cfg["compression"]["target_kept_ratio"])
-    error_lookup, kept_frac_lookup = build_error_and_kept_lookup(layer_profiles)
-    allocation, total_err, achieved_removed = solve_mckp_target_based(
+    error_lookup, kept_frac_lookup, ks_lookup = build_error_and_kept_lookup(layer_profiles)
+    cr_allocation, ks_allocation, total_err, achieved_removed = solve_mckp_target_based(
         layer_profiles,
         error_lookup,
         kept_frac_lookup,
+        ks_lookup,
         total_params,
         target_kept_ratio=cfg["compression"]["target_kept_ratio"],
         param_precision=cfg["compression"]["param_precision"]
@@ -42,12 +43,12 @@ def main():
     
 
     cr_nested = {}
-    for layer, cr_chosen in zip(layer_profiles, allocation):
+    for layer, cr_chosen, ks_chosen in zip(layer_profiles, cr_allocation, ks_allocation):
         name = layer['name']
         idx = layer['idx']
         if name not in cr_nested:
             cr_nested[name] = {}
-        cr_nested[name][idx] = cr_chosen
+        cr_nested[name][idx] = {'cr': cr_chosen, 'ks': ks_chosen}
 
     print(f"Achieved compression (removed): {achieved_removed:.3f}")
     with open(cfg["profiling"]["cr_cache"],"w") as f:
@@ -68,8 +69,7 @@ def main():
                 w_orig,
                 name=name,
                 index=i,
-                cr_target=cr_nested[name][i],
-                ks_ratio=cfg["profiling"]["ks_ratio"],
+                cr_ks=cr_nested[name][i],
                 calib_data=cfg["calib"]["data_path"],
                 dobi_like=cfg["compression"]["dobi_like"],
                 adam_refine_steps = adam_refinement_step

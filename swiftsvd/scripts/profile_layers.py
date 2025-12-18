@@ -33,7 +33,7 @@ def main():
         cfg["profiling"]["module_names"],
         cfg["calib"]["data_path"],
         cfg["profiling"]["cr_candidates"],
-        ks_ratio=cfg["profiling"]["ks_ratio"]
+        ks_ratios=cfg["profiling"]["ks_ratios"]
     )
 
     total_params = sum(p.numel() for layer in model.model.layers for p in layer.parameters())
