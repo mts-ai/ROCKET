@@ -32,6 +32,8 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
             best_error = 1e12
             for ks_ratio in ks_ratios:
                 r_float, sparsity_ratio = get_k_and_sparsity(cr, d1, d2, L, ks_ratio)
+                if r_float > max_r:
+                    continue
                 r = max(1, min(int(r_float), max_r))
 
                 u = u_full[:, :r]
