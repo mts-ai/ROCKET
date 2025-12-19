@@ -27,6 +27,8 @@ def main():
     os.makedirs(os.path.dirname(calib_path), exist_ok=True)
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"]["name"])
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
         cfg["model"]["name"], device_map="cuda", torch_dtype=getattr(torch, cfg["model"]["dtype"])
     )
