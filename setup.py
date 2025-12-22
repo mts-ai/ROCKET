@@ -23,6 +23,7 @@ setup(
             "swiftsvd-compress=swiftsvd.scripts.compress_model:main",
             "swiftsvd-evaluate=swiftsvd.scripts.evaluate_model:main",
             "swiftsvd-run-pipeline=swiftsvd.scripts.run_full_pipeline:main",
+            "swiftsvd-eval-ppl=swiftsvd.scripts.perplexity:main"
         ],
     },
     author="Ammar",
