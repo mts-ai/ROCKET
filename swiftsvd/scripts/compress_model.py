@@ -10,6 +10,7 @@ from swiftsvd.compression.mckp import solve_mckp_target_based, solve_mckp_min_co
 from swiftsvd.compression.swiftsvd import svd_with_magnitude_sparsity_on_v
 from swiftsvd.utils.model_utils import get_weight_transposed, compute_actual_compression
 from swiftsvd.modeling.modeling_llama_svdllm import LlamaForCausalLM
+from swiftsvd.modeling.modeling_qwen3 import Qwen3ForCausalLM
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 import gc
@@ -80,9 +81,14 @@ def main():
         cfg["model"]["name"], device_map="cpu", torch_dtype=getattr(torch, cfg["model"]["dtype"])
     )
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"]["name"])
-    new_model = LlamaForCausalLM.from_pretrained(
-        cfg["model"]["name"], device_map="cpu", torch_dtype=getattr(torch, cfg["model"]["dtype"]), compression_path=cfg["profiling"]["cr_cache"]
-    )
+    if "llama" in cfg["model"]["name"].lower():
+        new_model = LlamaForCausalLM.from_pretrained(
+            cfg["model"]["name"], device_map="cpu", torch_dtype=getattr(torch, cfg["model"]["dtype"]), compression_path=cfg["profiling"]["cr_cache"]
+        )
+    else:
+        new_model = Qwen3ForCausalLM.from_pretrained(
+            cfg["model"]["name"], device_map="cpu", torch_dtype=getattr(torch, cfg["model"]["dtype"]), compression_path=cfg["profiling"]["cr_cache"]
+        )
     module_names = cfg["profiling"]["module_names"]
     for name in module_names:
         for i in range(len(model.model.layers)):
@@ -118,22 +124,36 @@ def main():
     tokenizer.save_pretrained(out_dir + "_sep")
 
     sep_dir = out_dir + "_sep"
-    
-    # 1. Copy and rename the modeling file THIS SHOULD BE MODIFIED LATER TO SUPPORT OTHER MODELS
-    src_modeling_file = "swiftsvd/modeling/modeling_llama_svdllm.py"  # adjust if path differs
-    dst_modeling_file = os.path.join(sep_dir, "modeling_llama_svd.py")
-    shutil.copyfile(src_modeling_file, dst_modeling_file)
-    
-    # 2. Load the config.json from the sep checkpoint
-    config_path = os.path.join(sep_dir, "config.json")
-    with open(config_path, "r") as f:
-        config = json.load(f)
-    
-    # 3. Inject auto_map
-    config["auto_map"] = {
-        "AutoModel": "modeling_llama_svd.LlamaModel",
-        "AutoModelForCausalLM": "modeling_llama_svd.LlamaForCausalLM"
-    }
+    if "llama" in cfg["model"]["name"].lower():
+        # 1. Copy and rename the modeling file THIS SHOULD BE MODIFIED LATER TO SUPPORT OTHER MODELS
+        src_modeling_file = "swiftsvd/modeling/modeling_llama_svdllm.py"  # adjust if path differs
+        dst_modeling_file = os.path.join(sep_dir, "modeling_llama_svd.py")
+        shutil.copyfile(src_modeling_file, dst_modeling_file)
+        
+        # 2. Load the config.json from the sep checkpoint
+        config_path = os.path.join(sep_dir, "config.json")
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        # 3. Inject auto_map
+        config["auto_map"] = {
+            "AutoModel": "modeling_llama_svd.LlamaModel",
+            "AutoModelForCausalLM": "modeling_llama_svd.LlamaForCausalLM"
+        }
+    else:
+        src_modeling_file = "swiftsvd/modeling/modeling_qwen3.py"  # adjust if path differs
+        dst_modeling_file = os.path.join(sep_dir, "modeling_qwen3.py")
+        shutil.copyfile(src_modeling_file, dst_modeling_file)
+        
+        # 2. Load the config.json from the sep checkpoint
+        config_path = os.path.join(sep_dir, "config.json")
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        # 3. Inject auto_map
+        config["auto_map"] = {
+            "AutoModel": "modeling_qwen3.LlamaModel",
+            "AutoModelForCausalLM": "modeling_qwen3.LlamaForCausalLM"
+        }
+        
     
     # 4. Save updated config
     with open(config_path, "w") as f:
