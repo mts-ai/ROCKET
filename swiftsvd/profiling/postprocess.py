@@ -8,8 +8,7 @@ def preprocess_layer_profiles(layer_profiles, reference_cr=0.2):
                 errors_at_ref_cr.append(err)
                 break
     if errors_at_ref_cr:
-        scale = 1.0 if reference_cr==0.2 else 1.1
-        avg_error = np.mean(errors_at_ref_cr) * scale
+        avg_error = np.mean(errors_at_ref_cr) * 1.0
     else:
         all_errors = [err for layer in layer_profiles for (_, _, err) in layer['options'] if 0 <= err < 2.0]
         avg_error = np.percentile(all_errors, 95) if all_errors else 1.0
@@ -18,7 +17,7 @@ def preprocess_layer_profiles(layer_profiles, reference_cr=0.2):
 
     filtered_profiles = []
     for layer in layer_profiles:
-        filtered_options = [(cr, ac, err, ks) for cr, ac, err, ks in layer['options'] if err <= avg_error and 0 <= err < 2.0]
+        filtered_options = [(cr, ac, err, ks) for cr, ac, err, ks in layer['options'] if (err <= avg_error and 0 <= err < 2.0) or (cr <= reference_cr)]
         if not filtered_options:
             best_option = min(layer['options'], key=lambda x: x[2])
             filtered_options = [best_option]
