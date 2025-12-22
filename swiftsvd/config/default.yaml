@@ -30,10 +30,13 @@ compression:
   dobi_like: false
   output_dir: "/share/a.ammar/swift_svd/llama3_1b_swift_svd_20_new"
   adam_refine_steps: 100
-  method: knapsack
+  method: dijekstra
 
 evaluation:
   tasks: ["wikitext"] #["mmlu", "arc_easy", "arc_challenge", "hellaswag", "piqa", "lambada_openai", "race", "sciq"] #
   batch_size: 4
   max_batch_size: 16
   device: "cuda"
+
+evaluation_ppl:
+  dataset_name: "c4"
