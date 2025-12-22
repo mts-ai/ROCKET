@@ -115,9 +115,12 @@ def svd_with_magnitude_sparsity_on_v(
         U_param = nn.Parameter(U_opt.clone())  # (m, r)
         V_param = nn.Parameter(v_sparse.clone())  # (r, n)
 
-        # Fix sparsity: register mask as buffer
         mask_v = mask.to(V_param.device)
+        with torch.no_grad():
+            V_param *= mask_v
 
+        # 2. Kill gradients for masked entries
+        V_param.register_hook(lambda g: g * mask_v)
         optimizer = torch.optim.Adam([U_param, V_param], lr=1e-3, amsgrad=False)
         target = x.detach()  # = ss @ w1, whitened target
 
