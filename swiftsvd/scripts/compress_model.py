@@ -5,7 +5,7 @@ import json
 import shutil
 from swiftsvd.utils.seed import seed_all
 from swiftsvd.utils.io import load_json
-from swiftsvd.profiling.postprocess import preprocess_layer_profiles, build_error_and_kept_lookup
+from swiftsvd.profiling.postprocess import preprocess_layer_profiles, build_error_and_kept_lookup, find_min_alpha_for_target_cr
 from swiftsvd.compression.mckp import solve_mckp_target_based, solve_mckp_min_cost_flow, solve_dijkstra
 from swiftsvd.compression.swiftsvd import svd_with_magnitude_sparsity_on_v
 from swiftsvd.utils.model_utils import get_weight_transposed, compute_actual_compression
@@ -27,10 +27,11 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     cache = load_json(cfg["profiling"]["profile_cache"])
+    best_alpha = find_min_alpha_for_target_cr(cache, cfg["compression"]["target_kept_ratio"])
     layer_profiles_raw = cache["layer_profiles"]
     total_params = cache["total_params"]
     adam_refinement_step = cfg["compression"]["adam_refine_steps"]
-    layer_profiles, _ = preprocess_layer_profiles(layer_profiles_raw, reference_cr=cfg["compression"]["target_kept_ratio"])
+    layer_profiles, _ = preprocess_layer_profiles(layer_profiles_raw, reference_cr=cfg["compression"]["target_kept_ratio"], alpha=best_alpha)
     error_lookup, kept_frac_lookup, ks_lookup = build_error_and_kept_lookup(layer_profiles)
     if cfg["compression"]["method"] == "knapsack":
         cr_allocation, ks_allocation, total_err, achieved_removed = solve_mckp_target_based(
