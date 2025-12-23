@@ -35,7 +35,7 @@ def solve_mckp_target_based(
                 continue
             candidates.append((kept, error, cr_target, ks_ratio))
         if not candidates:
-            candidates = [(orig_params, 0.0, 1.0, 1.0)]
+            candidates = [(orig_params, 0.0, 0.0, 1.0)]
 
         new_dp = {}
         for kept_scaled, (err_so_far, cr_list, ks_list) in dp.items():
@@ -116,7 +116,7 @@ def solve_mckp_min_cost_flow(
         if not candidates:
             scaled_kept = int(round(orig_params * scale))
             cost = 0
-            candidates = [(scaled_kept, cost, 1.0, 1.0)]  # include default ks_ratio
+            candidates = [(scaled_kept, cost, 0.0, 1.0)]  # include default ks_ratio
         layers.append(candidates)
 
     max_scaled = param_precision
@@ -290,7 +290,7 @@ def solve_dijkstra(
         if not candidates:
             scaled_kept = int(round(orig_params * scale))
             cost_int = 0
-            candidates = [(scaled_kept, cost_int, 1.0, 1.0)]  # include default ks_ratio
+            candidates = [(scaled_kept, cost_int, 0.0, 1.0)]  # include default ks_ratio
         layers.append(candidates)
 
     max_scaled = param_precision
