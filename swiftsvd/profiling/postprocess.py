@@ -76,7 +76,6 @@ def find_min_alpha_for_target_cr(
         opt = min(options, key=lambda x: abs(x[0] - target_cr))
         errors_at_target.append(opt[2])
     avg_error = sum(errors_at_target) / len(errors_at_target)
-
     # Step 2: Try increasing alphas
     for alpha in alphas:
         error_threshold = avg_error * alpha
@@ -90,8 +89,8 @@ def find_min_alpha_for_target_cr(
             # Keep only options where error <= threshold
             valid_opts = [opt for opt in options if opt[2] <= error_threshold]
             if not valid_opts:
-                feasible = False
-                break
+                best_by_error = min(options, key=lambda x: x[2])
+                valid_opts = [best_by_error]
 
             # Among valid options, pick the one with *highest cr* (remove most params)
             best_opt = max(valid_opts, key=lambda x: x[0])  # max compression (max cr)
@@ -103,7 +102,6 @@ def find_min_alpha_for_target_cr(
             continue
 
         global_cr = 1.0 - (total_retained / total_params)
-
         if global_cr >= target_cr - 1e-6:  # tolerance for floating point
             return alpha
 
