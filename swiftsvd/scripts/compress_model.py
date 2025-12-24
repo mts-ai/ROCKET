@@ -27,6 +27,8 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     cache = load_json(cfg["profiling"]["profile_cache"])
+    for idx in range(len(cache["layer_profiles"])):
+        cache["layer_profiles"][idx]["options"].append([0.0,1.0,0.0,1.0])
     best_alpha = find_min_alpha_for_target_cr(cache, cfg["compression"]["target_kept_ratio"])
     layer_profiles_raw = cache["layer_profiles"]
     total_params = cache["total_params"]
