@@ -33,7 +33,7 @@ def main():
     # Derive paths
     safe_model = sanitize_model_name(args.model_name)
     ratio_str = f"{args.target_kept_ratio:.2f}".replace(".", "_")
-    exp_name = f"{safe_model}_r{ratio_str}"
+    exp_name = f"{safe_model}_cr{ratio_str}"
     output_dir = Path(args.results_base_dir) / exp_name
     model_dir = Path(args.results_model_dir) / exp_name
     cfg["compression"]["output_dir"] = str(model_dir)
