@@ -40,7 +40,7 @@ for model in "${MODELS[@]}"; do
       --results_base_dir "$RESULTS_DIR"
     
     echo "Running experiment: $exp_name"
-    python run_experiment.py --config "$CONFIG_FILE"
+    swiftsvd-run-pipeline --config "$CONFIG_FILE"
     
     echo "Completed: $exp_name"
     echo "-----------------------------"
