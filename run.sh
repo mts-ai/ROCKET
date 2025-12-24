@@ -3,7 +3,7 @@
 
 set -e  # Exit on error
 
-BASE_CONFIG="swiftsvd/config/base_config.yaml"
+BASE_CONFIG="swiftsvd/config/default.yaml"
 RESULTS_DIR="./results"
 CONFIGS_DIR="./results/configs"
 
