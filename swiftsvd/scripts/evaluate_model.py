@@ -8,6 +8,7 @@ os.environ["ACCELERATE_CONFIG_FILE"] = ""
 
 import lm_eval
 from lm_eval.models.huggingface import HFLM
+from swiftsvd.utils.io import parse_and_save_results
 
 def main():
     parser = argparse.ArgumentParser()
@@ -27,7 +28,9 @@ def main():
         max_batch_size=cfg["evaluation"]["max_batch_size"],
         device=cfg["evaluation"]["device"]
     )
-    print(res["results"])
+
+    # print(res["results"])
+    parse_and_save_results(res["results"], cfg["evaluation"]['res_path'])
 
 if __name__ == "__main__":
     main()
