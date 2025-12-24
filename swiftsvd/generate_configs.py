@@ -3,6 +3,11 @@ import yaml
 import argparse
 from pathlib import Path
 
+CALIB_PATH = {
+    "unsloth/Llama-3.2-1B": "/share/a.ammar/sparsesvd/llama1b/data/calib/refinedweb",
+    "unsloth/llama-3-8b": "/share/a.ammar/sparsesvd/llama8b/data/calib/refinedweb",
+}
+
 def sanitize_model_name(name: str) -> str:
     return name.replace("/", "__")
 
@@ -13,6 +18,7 @@ def main():
     parser.add_argument("--target_kept_ratio", type=float, required=True)
     parser.add_argument("--output_config", required=True)
     parser.add_argument("--results_base_dir", default="./results")
+    parser.add_argument("--results_model_dir", default="/share/b.mohammad/swift_svd_final")
     args = parser.parse_args()
 
     with open(args.base_config, "r") as f:
@@ -20,7 +26,7 @@ def main():
 
     # Update model
     cfg["model"]["name"] = args.model_name
-
+    cfg["calib"]["data_path"] = CALIB_PATH[args.model_name]
     # Update compression
     cfg["compression"]["target_kept_ratio"] = args.target_kept_ratio
 
@@ -29,8 +35,8 @@ def main():
     ratio_str = f"{args.target_kept_ratio:.2f}".replace(".", "_")
     exp_name = f"{safe_model}_r{ratio_str}"
     output_dir = Path(args.results_base_dir) / exp_name
-
-    cfg["compression"]["output_dir"] = str(output_dir)
+    model_dir = Path(args.results_model_dir) / exp_name
+    cfg["compression"]["output_dir"] = str(model_dir)
 
     # Update cache paths (relative to output_dir or results_base_dir)
     cfg["profiling"]["profile_cache"] = str(output_dir / "layer_prof.json")
