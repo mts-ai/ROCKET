@@ -28,7 +28,7 @@ for model in "${MODELS[@]}"; do
     # Sanitize model name for filename
     safe_model=$(echo "$model" | sed 's|/|__|g')
     ratio_str=$(printf "%.2f" "$ratio" | tr '.' '_')
-    exp_name="${safe_model}_r${ratio_str}"
+    exp_name="${safe_model}_cr${ratio_str}"
     
     CONFIG_FILE="$CONFIGS_DIR/${exp_name}.yaml"
     
