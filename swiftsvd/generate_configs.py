@@ -35,7 +35,7 @@ def main():
     # Update cache paths (relative to output_dir or results_base_dir)
     cfg["profiling"]["profile_cache"] = str(output_dir / "layer_prof.json")
     cfg["profiling"]["cr_cache"] = str(output_dir / "cr_layer_prof.json")
-
+    cfg["evaluation"]["res_path"] = str(output_dir / "results.json")
     # Ensure parent of output_config exists
     Path(args.output_config).parent.mkdir(parents=True, exist_ok=True)
 

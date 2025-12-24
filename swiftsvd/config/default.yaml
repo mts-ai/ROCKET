@@ -37,6 +37,7 @@ evaluation:
   batch_size: 4
   max_batch_size: 16
   device: "cuda"
+  res_path: "results.json"
 
 evaluation_ppl:
   dataset_name: "c4"
