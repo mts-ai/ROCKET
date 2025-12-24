@@ -27,9 +27,12 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
     cache = load_json(cfg["profiling"]["profile_cache"])
+    for idx in range(len(cache["layer_profiles"])):
+        cache["layer_profiles"][idx]["options"].append([0.0,1.0,0.0,1.0])
     best_alpha = find_min_alpha_for_target_cr(cache, cfg["compression"]["target_kept_ratio"])
     layer_profiles_raw = cache["layer_profiles"]
     total_params = cache["total_params"]
+    
     adam_refinement_step = cfg["compression"]["adam_refine_steps"]
     layer_profiles, _ = preprocess_layer_profiles(layer_profiles_raw, reference_cr=cfg["compression"]["target_kept_ratio"], alpha=best_alpha)
     error_lookup, kept_frac_lookup, ks_lookup = build_error_and_kept_lookup(layer_profiles)

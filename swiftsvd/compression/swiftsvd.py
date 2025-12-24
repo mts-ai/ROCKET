@@ -45,14 +45,14 @@ def svd_with_magnitude_sparsity_on_v(
         d1, d2 = w1.shape
         r, sparsity_ratio = get_k_and_sparsity(cr_ks['cr'], d1, d2, 1, cr_ks['ks'])
         r = max(1, min(r, min(d1, d2)))
-        if cr_ks['cr']<=0 and cr_ks['ks'] <= 1.0:
-            return (inv_s@u).cpu(), v_full.cpu()
+
         # After SVD
         u = u[:, :r]          # (d1, r)
         sigma = sigma[:r]     # (r,)
         v = v[:r, :]          # (r, d2)
         v_full = torch.diag(sigma) @ v  # (r, d2)
-        
+        if cr_ks['cr']<=0 and cr_ks['ks'] <= 1.0:
+            return (inv_s@u).cpu(), v_full.cpu() 
         # 1. Whitened-space importance (already in v_full)
         imp_x = v_full.abs()  # (r, d2)
         
