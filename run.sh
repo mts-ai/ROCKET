@@ -10,12 +10,13 @@ CONFIGS_DIR="./results/configs"
 # Define your sweep parameters HERE
 MODELS=(
   "unsloth/Llama-3.2-1B"
-  "meta-llama/Llama-3.1-8B"
+  "unsloth/llama-3-8b"
 )
 RATIOS=(
-  0.10
   0.20
   0.30
+  0.40
+  0.50
 )
 
 # Create dirs
