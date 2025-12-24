@@ -4,7 +4,7 @@ import os
 import json
 import shutil
 from swiftsvd.utils.seed import seed_all
-from swiftsvd.utils.io import load_json
+from swiftsvd.utils.io import load_json, ensure_file_path
 from swiftsvd.profiling.postprocess import preprocess_layer_profiles, build_error_and_kept_lookup, find_min_alpha_for_target_cr
 from swiftsvd.compression.mckp import solve_mckp_target_based, solve_mckp_min_cost_flow, solve_dijkstra
 from swiftsvd.compression.swiftsvd import svd_with_magnitude_sparsity_on_v
@@ -75,6 +75,7 @@ def main():
         cr_nested[name][idx] = {'cr': cr_chosen, 'ks': ks_chosen}
 
     print(f"Achieved compression (removed): {achieved_removed:.3f}")
+    ensure_file_path(cfg["profiling"]["cr_cache"])
     with open(cfg["profiling"]["cr_cache"],"w") as f:
         json.dump(cr_nested, f)
     # Load model

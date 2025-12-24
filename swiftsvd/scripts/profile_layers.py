@@ -3,7 +3,7 @@ import yaml
 import os
 from swiftsvd.utils.seed import seed_all
 from swiftsvd.profiling.profiler import profile_all_layers
-from swiftsvd.utils.io import save_json, load_json
+from swiftsvd.utils.io import save_json, load_json, ensure_file_path
 from transformers import AutoModelForCausalLM, AutoTokenizer
 import torch
 
@@ -20,6 +20,7 @@ def main():
         print(f"✅ Layer profiles found at {cache_path}")
         return
 
+    ensure_file_path(cache_path)
     seed_all(42)
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
