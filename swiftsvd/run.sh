@@ -3,7 +3,7 @@
 
 set -e  # Exit on error
 
-BASE_CONFIG="config/base_config.yml"
+BASE_CONFIG="config/base_config.yaml"
 RESULTS_DIR="./results"
 CONFIGS_DIR="./results/configs"
 
@@ -29,7 +29,7 @@ for model in "${MODELS[@]}"; do
     ratio_str=$(printf "%.2f" "$ratio" | tr '.' '_')
     exp_name="${safe_model}_r${ratio_str}"
     
-    CONFIG_FILE="$CONFIGS_DIR/${exp_name}.yml"
+    CONFIG_FILE="$CONFIGS_DIR/${exp_name}.yaml"
     
     echo "Generating config for: $exp_name"
     python generate_configs.py \
