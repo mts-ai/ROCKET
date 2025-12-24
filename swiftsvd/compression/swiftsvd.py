@@ -52,7 +52,7 @@ def svd_with_magnitude_sparsity_on_v(
         v = v[:r, :]          # (r, d2)
         v_full = torch.diag(sigma) @ v  # (r, d2)
         if cr_ks['cr']<=0 and cr_ks['ks'] <= 1.0:
-            return (inv_s@u).cpu(), v_full.cpu()
+            return (inv_s@u).cpu(), v_full.cpu() 
         # 1. Whitened-space importance (already in v_full)
         imp_x = v_full.abs()  # (r, d2)
         
