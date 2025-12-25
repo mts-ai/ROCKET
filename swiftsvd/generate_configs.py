@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--target_kept_ratio", type=float, required=True)
     parser.add_argument("--output_config", required=True)
     parser.add_argument("--results_base_dir", default="./results")
+    parser.add_argument("--profile_dir", default="./profiles")
     parser.add_argument("--results_model_dir", default="/share/b.mohammad/swift_svd_final")
     args = parser.parse_args()
 
@@ -35,11 +36,12 @@ def main():
     ratio_str = f"{args.target_kept_ratio:.2f}".replace(".", "_")
     exp_name = f"{safe_model}_cr{ratio_str}"
     output_dir = Path(args.results_base_dir) / exp_name
+    profile_dir = Path(args.profile_dir) / safe_model
     model_dir = Path(args.results_model_dir) / exp_name
     cfg["compression"]["output_dir"] = str(model_dir)
 
     # Update cache paths (relative to output_dir or results_base_dir)
-    cfg["profiling"]["profile_cache"] = str(output_dir / "layer_prof.json")
+    cfg["profiling"]["profile_cache"] = str(profile_dir / "_layer_prof.json")
     cfg["profiling"]["cr_cache"] = str(output_dir / "cr_layer_prof.json")
     cfg["evaluation"]["res_path"] = str(output_dir / "results.json")
     # Ensure parent of output_config exists

@@ -6,6 +6,7 @@ set -e  # Exit on error
 BASE_CONFIG="swiftsvd/config/default.yaml"
 RESULTS_DIR="./results"
 CONFIGS_DIR="./results/configs"
+PROFILES_DIR= "./profiles"
 
 # Define your sweep parameters HERE
 MODELS=(
@@ -38,7 +39,8 @@ for model in "${MODELS[@]}"; do
       --model_name "$model" \
       --target_kept_ratio "$ratio" \
       --output_config "$CONFIG_FILE" \
-      --results_base_dir "$RESULTS_DIR"
+      --results_base_dir "$RESULTS_DIR" \
+      --profile_dir "$PROFILES_DIR"
     
     echo "Running experiment: $exp_name"
     swiftsvd-run-pipeline --config "$CONFIG_FILE"
