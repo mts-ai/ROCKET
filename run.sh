@@ -6,16 +6,16 @@ set -e  # Exit on error
 BASE_CONFIG="swiftsvd/config/default.yaml"
 RESULTS_DIR="./results"
 CONFIGS_DIR="./results/configs"
-PROFILES_DIR= "./results/profiles"
+PROFILES_DIR="./results/profiles"
 
 # Define your sweep parameters HERE
 MODELS=(
-  "unsloth/Llama-3.2-1B"
+  # "unsloth/Llama-3.2-1B"
   "unsloth/llama-3-8b"
 )
 RATIOS=(
-  0.20
-  0.30
+  # 0.20
+  # 0.30
   0.40
   0.50
 )
