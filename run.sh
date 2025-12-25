@@ -6,7 +6,7 @@ set -e  # Exit on error
 BASE_CONFIG="swiftsvd/config/default.yaml"
 RESULTS_DIR="./results"
 CONFIGS_DIR="./results/configs"
-PROFILES_DIR= "./profiles"
+PROFILES_DIR= "./results/profiles"
 
 # Define your sweep parameters HERE
 MODELS=(
