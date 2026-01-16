@@ -10,14 +10,15 @@ PROFILES_DIR="./results/profiles"
 
 # Define your sweep parameters HERE
 MODELS=(
-  # "unsloth/Llama-3.2-1B"
-  "unsloth/llama-3-8b"
+  "Qwen/Qwen3-0.6B"
+  "Qwen/Qwen3-1.7B"
+  "Qwen/Qwen3-4B"
 )
 RATIOS=(
-  # 0.20
+  0.20
   # 0.30
   0.40
-  0.50
+  # 0.50
 )
 
 # Create dirs

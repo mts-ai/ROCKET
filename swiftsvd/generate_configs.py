@@ -6,6 +6,10 @@ from pathlib import Path
 CALIB_PATH = {
     "unsloth/Llama-3.2-1B": "/share/a.ammar/sparsesvd/llama1b/data/calib/refinedweb",
     "unsloth/llama-3-8b": "/share/b.mohammad/sparsesvd/llama8b/data/calib/refinedweb",
+    "Qwen/Qwen3-0.6B": "/share/b.mohammad/sparsesvd/qwen3_0-6b/data/calib/refinedweb",
+    "Qwen/Qwen3-1.7B": "/share/b.mohammad/sparsesvd/qwen3_1-7b/data/calib/refinedweb",
+    "Qwen/Qwen3-4B": "/share/b.mohammad/sparsesvd/qwen3_4b/data/calib/refinedweb"
+
 }
 
 def sanitize_model_name(name: str) -> str:

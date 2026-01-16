@@ -33,7 +33,7 @@ compression:
   method: dijekstra
 
 evaluation:
-  tasks: ["wikitext"] #["mmlu", "arc_easy", "arc_challenge", "hellaswag", "piqa", "lambada_openai", "race", "sciq"] #
+  tasks: ["wikitext", "mmlu", "arc_easy", "arc_challenge", "hellaswag", "piqa", "lambada_openai", "race", "sciq"] #
   batch_size: 4
   max_batch_size: 16
   device: "cuda"
