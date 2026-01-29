@@ -5,7 +5,7 @@
 [![HuggingFace Collection](https://img.shields.io/badge/HuggingFace-Collection-yellow.svg?logo=huggingface)]()
 [![Kaggle](https://img.shields.io/badge/Kaggle-Notebook-20beff?logo=kaggle&logoColor=white)]()
 ![ROCKET Architecture](figs/logo.png)
-
+### A cartoon rocket labeled “LLM” on launchpad, Scientist at console pressing big red button labeled “Solve MCKP”. Rocket blasting off, leaving behind sparse matrices and a knapsack full of optimal (rank, sparsity) pairs
 ## Code Structure
 ```
 rocket/
