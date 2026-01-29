@@ -4,7 +4,7 @@
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/downloads/)
 [![HuggingFace Collection](https://img.shields.io/badge/HuggingFace-Collection-yellow.svg?logo=huggingface)]()
 [![Kaggle](https://img.shields.io/badge/Kaggle-Notebook-20beff?logo=kaggle&logoColor=white)]()
-![ROCKET Architecture](figs/logo.jpg)
+![ROCKET Architecture](figs/logo.png)
 
 ## Code Structure
 ```
