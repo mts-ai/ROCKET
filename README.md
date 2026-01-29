@@ -5,8 +5,10 @@
 [![HuggingFace Collection](https://img.shields.io/badge/HuggingFace-Collection-yellow.svg?logo=huggingface)]()
 [![Kaggle](https://img.shields.io/badge/Kaggle-Notebook-20beff?logo=kaggle&logoColor=white)]()
 ![ROCKET Architecture](figs/logo.png)
-### A cartoon rocket labeled “LLM” on launchpad, Scientist at console pressing big red button labeled “Solve MCKP”. Rocket blasting off, leaving behind sparse matrices and a knapsack full of optimal (rank, sparsity) pairs
-## Code Structure
+In a quiet corner of the AI research lab, a cartoon rocket stood on the launchpad—bright red, cheerful, and boldly labeled “LLM.” At the control console sat a scientist, fingers hovering over a single, enormous red button marked “Solve MCKP.”
+With a deep breath and a flicker of hope, they pressed it.
+The rocket roared to life. Flames erupted, scattering clouds of sparse matrices like confetti made of zeros. As the LLM blasted into the stratosphere of efficient inference, it left behind on the pad a humble knapsack overflowing not with gold, but with perfectly balanced (rank, sparsity) pairs: the optimal solutions to the Multiple-Choice Knapsack Problem, handpicked for model compression.
+Up it soared lighter, faster, smarter carrying only what truly mattered.
 ```
 rocket/
 ├── setup.py
