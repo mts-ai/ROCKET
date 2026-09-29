@@ -18,7 +18,15 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
 
     with torch.no_grad():
         x = ss @ w1
-        u_full, sigma_full, v_full = torch.linalg.svd(x, full_matrices=False)
+        try:
+            u_full, sigma_full, v_full = torch.linalg.svd(x, full_matrices=False)
+        except torch._C._LinAlgError:
+            # LAPACK gesdd (the CPU default) can fail to converge on ill-conditioned whitened weights;
+            # the QR-based gesvd driver is slower but robust.
+            import scipy.linalg
+            print(f"gesdd failed for {name}{index}, falling back to gesvd")
+            u_np, s_np, vh_np = scipy.linalg.svd(x.cpu().numpy(), full_matrices=False, lapack_driver="gesvd")
+            u_full, sigma_full, v_full = (torch.from_numpy(a).to(x.device) for a in (u_np, s_np, vh_np))
         max_r = min(d1, d2)
         sigma_full = sigma_full[:max_r]
         u_full = u_full[:, :max_r]

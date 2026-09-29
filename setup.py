@@ -14,7 +14,8 @@ setup(
         "lm-eval==0.4.9.2",
         "pyyaml",
         "accelerate==1.12.0",
-        "ortools==9.14.6206"
+        "ortools==9.14.6206",
+        "scipy"
     ],
     entry_points={
         "console_scripts": [
