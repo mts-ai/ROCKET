@@ -8,7 +8,7 @@ from rocket.utils.io import load_json
 from rocket.profiling.postprocess import preprocess_layer_profiles, build_error_and_kept_lookup, find_min_alpha_for_target_cr
 from rocket.compression.mckp import solve_mckp_target_based, solve_mckp_min_cost_flow, solve_dijkstra
 from rocket.compression.rocket import svd_with_magnitude_sparsity_on_v
-from rocket.utils.model_utils import get_weight_transposed, compute_actual_compression
+from rocket.utils.model_utils import get_weight_transposed
 from rocket.modeling.modeling_llama_svdllm import LlamaForCausalLM
 from rocket.modeling.modeling_qwen3 import Qwen3ForCausalLM
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -77,7 +77,11 @@ def main():
             cr_nested[name] = {}
         cr_nested[name][idx] = {'cr': cr_chosen, 'ks': ks_chosen}
 
-    print(f"Achieved compression (removed): {achieved_removed:.3f}")
+    # The solvers' last return value is the *kept* fraction (the "cr" they sum is the removed fraction),
+    # so report the removed share of the compressed linear layers directly.
+    orig_total = sum(layer['orig_params'] for layer in layer_profiles)
+    removed = sum(cr * layer['orig_params'] for layer, cr in zip(layer_profiles, cr_allocation)) / orig_total
+    print(f"Achieved compression (removed): {removed:.3f}")
     with open(cfg["profiling"]["cr_cache"],"w") as f:
         json.dump(cr_nested, f)
     # Load model
@@ -163,8 +167,7 @@ def main():
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
     # Final compression report
-    total_orig, total_kept, actual_cr = compute_actual_compression(cr_nested, d=2048, num_layers=16)
-    print(f"Final compression: {actual_cr:.3f} (removed)")
+    print(f"Final compression: {removed:.3f} (removed, of compressed linear-layer parameters)")
 
 if __name__ == "__main__":
     main()
