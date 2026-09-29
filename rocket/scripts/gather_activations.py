@@ -3,6 +3,7 @@ import yaml
 import os
 import torch
 from rocket.utils.seed import seed_all
+from rocket.utils.device import model_device
 from rocket.data.prepare_data import prepare_data
 from rocket.calib.calib import Calib
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -30,7 +31,7 @@ def main():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
-        cfg["model"]["name"], device_map="cuda", torch_dtype=getattr(torch, cfg["model"]["dtype"])
+        cfg["model"]["name"], device_map=model_device(), torch_dtype=getattr(torch, cfg["model"]["dtype"])
     )
 
     train_dataset, _, _, data_collator = prepare_data(

@@ -39,9 +39,9 @@ class Hook:
             B2, S2, D2 = out.shape
             inp_flat = inp.view(-1, D)  # [B*S, D]
             out_flat = out.view(-1, D2)
-            # Use double for numerical stability
-            local_g = (inp_flat.t() @ inp_flat).double()  # [D, D]
-            local_g_out = (out_flat.t() @ out_flat).double()  # [D2, D2]
+            # Use double for numerical stability (converted on CPU: MPS has no float64; the cast is exact)
+            local_g = (inp_flat.t() @ inp_flat).cpu().double()  # [D, D]
+            local_g_out = (out_flat.t() @ out_flat).cpu().double()  # [D2, D2]
 
             if self.calib is None:
                 self.calib = local_g.cpu()

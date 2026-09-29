@@ -1,4 +1,5 @@
 import torch
+from rocket.utils.device import LINALG_DEVICE, empty_cache
 import numpy as np
 from tqdm import tqdm
 from rocket.utils.model_utils import get_weight_transposed, get_k_and_sparsity, frobenius_distance
@@ -11,9 +12,9 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
     orig_params = d1 * d2
 
     ss, inv_s = Calib.get_s_inv_s(index, name, "llama3", calib_data)
-    ss = ss.double().cuda()
-    inv_s = inv_s.double().cuda()
-    w1 = w1.double().cuda()
+    ss = ss.double().to(LINALG_DEVICE)
+    inv_s = inv_s.double().to(LINALG_DEVICE)
+    w1 = w1.double().to(LINALG_DEVICE)
 
     with torch.no_grad():
         x = ss @ w1
@@ -77,7 +78,7 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
             results.append(res)
 
     del ss, inv_s, w1, x, u_full, sigma_full, v_full
-    torch.cuda.empty_cache()
+    empty_cache()
     return results
 
 def profile_all_layers(model, module_names, calib_data, cr_candidates, ks_ratios=[2.0]):
