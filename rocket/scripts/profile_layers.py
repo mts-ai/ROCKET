@@ -2,6 +2,7 @@ import argparse
 import yaml
 import os
 from rocket.utils.seed import seed_all
+from rocket.utils.device import model_device
 from rocket.profiling.profiler import profile_all_layers
 from rocket.utils.io import save_json, load_json
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -25,7 +26,7 @@ def main():
 
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"]["name"])
     model = AutoModelForCausalLM.from_pretrained(
-        cfg["model"]["name"], device_map="cuda", torch_dtype=getattr(torch, cfg["model"]["dtype"])
+        cfg["model"]["name"], device_map=model_device(), torch_dtype=getattr(torch, cfg["model"]["dtype"])
     )
 
     layer_profiles, total_params = profile_all_layers(

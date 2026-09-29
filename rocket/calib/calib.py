@@ -8,7 +8,8 @@ logger = logging.get_logger(__name__)
 
 
 class Hook:
-    def __init__(self, module, backward=False):
+    def __init__(self, module, backward=False, keep_output=True):
+        self.keep_output = keep_output
         self.calib = None
         self.calib_out = None
         self.total_tokens = 0
@@ -39,21 +40,22 @@ class Hook:
             B2, S2, D2 = out.shape
             inp_flat = inp.view(-1, D)  # [B*S, D]
             out_flat = out.view(-1, D2)
-            # Use double for numerical stability
-            local_g = (inp_flat.t() @ inp_flat).double()  # [D, D]
-            local_g_out = (out_flat.t() @ out_flat).double()  # [D2, D2]
+            # Use double for numerical stability (converted on CPU: MPS has no float64; the cast is exact)
+            local_g = (inp_flat.t() @ inp_flat).cpu().double()  # [D, D]
 
             if self.calib is None:
                 self.calib = local_g.cpu()
             else:
                 self.calib += local_g.cpu()
 
+            self.total_tokens += B * S
+            if not self.keep_output:
+                return
+            local_g_out = (out_flat.t() @ out_flat).cpu().double()  # [D2, D2]
             if self.calib_out is None:
                 self.calib_out = local_g_out.cpu()
             else:
                 self.calib_out += local_g_out.cpu()
-
-            self.total_tokens += B * S
 
     def get_covariance(self):
         """Return average Gram matrix."""
@@ -205,6 +207,41 @@ class Calib:
                 Calib.save(os.path.join(tmp_save_path, tmp_name), data)
                 Calib.save(os.path.join(tmp_save_path, "out" + tmp_name), data2)
                 hook.close()
+
+    @staticmethod
+    def build_calibration_dataset_layerwise(model, dataloader, names, save_path, device):
+        """Memory-light variant of build_calibration_dataset for decoder-only HF models (Llama, Qwen3).
+
+        The model stays on CPU; decoder layers are moved to `device` and run one at a time on cached
+        hidden states, so only one layer's weights and float64 accumulators are live at once. Only the
+        input Gram matrices (<i>.pkl) are written: the output ones (out<i>.pkl) are not used by the
+        compression pipeline, and for an MLP up_proj they are intermediate_size^2 doubles per layer.
+        Produces the same <i>.pkl files as build_calibration_dataset for unpadded, full-length batches.
+        """
+        print("Start building calibration data (layer-wise).")
+        model.config.use_cache = False
+        model.eval()
+        decoder = model.model
+        with torch.no_grad():
+            decoder.embed_tokens.to(device)
+            hidden = [decoder.embed_tokens(batch["input_ids"].to(device)) for batch in dataloader]
+            decoder.embed_tokens.to("cpu")
+            decoder.rotary_emb.to(device)
+            position_ids = torch.arange(hidden[0].shape[1], device=device).unsqueeze(0)
+            position_embeddings = decoder.rotary_emb(hidden[0], position_ids)
+            for i, layer in enumerate(tqdm(decoder.layers)):
+                layer.to(device)
+                hooks = {name: Hook(layer.get_submodule(name), keep_output=False) for name in names}
+                # attention_mask=None selects SDPA's causal path, as the full model does on unpadded input.
+                hidden = [layer(h, attention_mask=None, position_ids=position_ids,
+                                position_embeddings=position_embeddings) for h in hidden]
+                hidden = [h[0] if isinstance(h, tuple) else h for h in hidden]
+                layer.to("cpu")
+                for name, hook in hooks.items():
+                    tmp_save_path = os.path.join(save_path, name)
+                    os.makedirs(tmp_save_path, exist_ok=True)
+                    Calib.save(os.path.join(tmp_save_path, f"{i}.pkl"), hook.calib.cpu())
+                    hook.close()
 
     @staticmethod
     def build_update_dataset(model, dataloader, names, model_type, save_path):

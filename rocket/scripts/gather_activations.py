@@ -3,6 +3,7 @@ import yaml
 import os
 import torch
 from rocket.utils.seed import seed_all
+from rocket.utils.device import model_device
 from rocket.data.prepare_data import prepare_data
 from rocket.calib.calib import Calib
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -29,8 +30,10 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"]["name"])
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    layerwise = cfg["calib"].get("layerwise", False)
     model = AutoModelForCausalLM.from_pretrained(
-        cfg["model"]["name"], device_map="cuda", torch_dtype=getattr(torch, cfg["model"]["dtype"])
+        cfg["model"]["name"], device_map="cpu" if layerwise else model_device(),
+        torch_dtype=getattr(torch, cfg["model"]["dtype"])
     )
 
     train_dataset, _, _, data_collator = prepare_data(
@@ -50,7 +53,10 @@ def main():
     )
 
     calib_names = ["self_attn.k_proj", "self_attn.o_proj", "mlp.up_proj", "mlp.down_proj"]
-    Calib.build_calibration_dataset(model, dataloader, calib_names, "llama3", calib_path)
+    if layerwise:
+        Calib.build_calibration_dataset_layerwise(model, dataloader, calib_names, calib_path, model_device())
+    else:
+        Calib.build_calibration_dataset(model, dataloader, calib_names, "llama3", calib_path)
     print("✅ Calibration data built.")
 
 if __name__ == "__main__":

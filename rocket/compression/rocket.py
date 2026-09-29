@@ -1,4 +1,5 @@
 import torch
+from rocket.utils.device import LINALG_DEVICE, empty_cache
 import torch.nn as nn
 import gc
 from rocket.utils.model_utils import get_weight_transposed, get_k_and_sparsity, frobenius_distance
@@ -34,9 +35,9 @@ def svd_with_magnitude_sparsity_on_v(
         index = [index]
 
     ss, inv_s = Calib.get_s_inv_s(index, name, "llama3", calib_data)
-    ss = ss.double().cuda()
-    inv_s = inv_s.double().cuda()
-    w1 = w1.double().cuda()
+    ss = ss.double().to(LINALG_DEVICE)
+    inv_s = inv_s.double().to(LINALG_DEVICE)
+    w1 = w1.double().to(LINALG_DEVICE)
 
     with torch.no_grad():
         x = ss @ w1
@@ -177,5 +178,5 @@ def svd_with_magnitude_sparsity_on_v(
         
     del w1, ss, inv_s, u, v_full, x, G, G_reg, WVt
     gc.collect()
-    torch.cuda.empty_cache()
+    empty_cache()
     return u_final.cpu(), v_final.cpu()

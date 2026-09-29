@@ -9,6 +9,7 @@ calib:
   seq_len: 1024
   batch_size: 8
   seed: 2023
+  layerwise: false  # true: run decoder layers one at a time (low host/device memory; inputs Grams only)
 
 profiling:
   module_names:
@@ -36,7 +37,7 @@ evaluation:
   tasks: ["wikitext"] #["mmlu", "arc_easy", "arc_challenge", "hellaswag", "piqa", "lambada_openai", "race", "sciq"] #
   batch_size: 4
   max_batch_size: 16
-  device: "cuda"
+  device: "cuda"  # or "mps" / "cpu"
 
 evaluation_ppl:
   dataset_name: "c4"

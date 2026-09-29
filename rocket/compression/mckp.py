@@ -34,8 +34,10 @@ def solve_mckp_target_based(
             if kept <= 0 or kept > orig_params or not (0 <= error < 2.0):
                 continue
             candidates.append((kept, error, cr_target, ks_ratio))
+        # A layer with no valid option stays uncompressed, i.e. removes 0 params. (kept_frac_lookup holds the
+        # *removed* fraction cr, so crediting orig_params here counted the layer as fully removed.)
         if not candidates:
-            candidates = [(orig_params, 0.0, 0.0, 1.0)]
+            candidates = [(0, 0.0, 0.0, 1.0)]
 
         new_dp = {}
         for kept_scaled, (err_so_far, cr_list, ks_list) in dp.items():
@@ -113,8 +115,10 @@ def solve_mckp_min_cost_flow(
             scaled_kept = int(round(kept * scale))
             cost = int(round(error * 1_000_000))
             candidates.append((scaled_kept, cost, cr_target, ks_ratio))
+        # A layer with no valid option stays uncompressed, i.e. removes 0 params. (kept_frac_lookup holds the
+        # *removed* fraction cr, so crediting orig_params here counted the layer as fully removed.)
         if not candidates:
-            scaled_kept = int(round(orig_params * scale))
+            scaled_kept = 0
             cost = 0
             candidates = [(scaled_kept, cost, 0.0, 1.0)]  # include default ks_ratio
         layers.append(candidates)
@@ -287,8 +291,10 @@ def solve_dijkstra(
             scaled_kept = int(round(kept * scale))
             cost_int = int(round(error * error_scale_factor))
             candidates.append((scaled_kept, cost_int, cr_target, ks_ratio))
+        # A layer with no valid option stays uncompressed, i.e. removes 0 params. (kept_frac_lookup holds the
+        # *removed* fraction cr, so crediting orig_params here counted the layer as fully removed.)
         if not candidates:
-            scaled_kept = int(round(orig_params * scale))
+            scaled_kept = 0
             cost_int = 0
             candidates = [(scaled_kept, cost_int, 0.0, 1.0)]  # include default ks_ratio
         layers.append(candidates)

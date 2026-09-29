@@ -5,6 +5,7 @@ from tqdm import tqdm
 import torch
 from transformers import LlamaTokenizer, AutoTokenizer, AutoModelForCausalLM
 from rocket.data.prepare_data import prepare_data
+from rocket.utils.device import model_device
 
 
 def compute_ppl(max_length, stride, data, model, device):
@@ -43,7 +44,7 @@ def main():
     train_dataset, val_dataset, test_dataset, data_collator = prepare_data(cfg['evaluation_ppl']['dataset_name'], tokenizer,
                                                                            2048,
                                                                            "PATH TO C4")
-    model = AutoModelForCausalLM.from_pretrained(cfg['compression']['output_dir'], device_map="cuda", torch_dtype=torch.float16, trust_remote_code=True)
-    print(compute_ppl(2048, 2048, test_dataset, model, "cuda"))
+    model = AutoModelForCausalLM.from_pretrained(cfg['compression']['output_dir'], device_map=model_device(), torch_dtype=torch.float16, trust_remote_code=True)
+    print(compute_ppl(2048, 2048, test_dataset, model, model_device()))
 if __name__ == '__main__':
     main()

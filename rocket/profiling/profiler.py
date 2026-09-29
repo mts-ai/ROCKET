@@ -1,4 +1,5 @@
 import torch
+from rocket.utils.device import LINALG_DEVICE, empty_cache
 import numpy as np
 from tqdm import tqdm
 from rocket.utils.model_utils import get_weight_transposed, get_k_and_sparsity, frobenius_distance
@@ -11,13 +12,21 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
     orig_params = d1 * d2
 
     ss, inv_s = Calib.get_s_inv_s(index, name, "llama3", calib_data)
-    ss = ss.double().cuda()
-    inv_s = inv_s.double().cuda()
-    w1 = w1.double().cuda()
+    ss = ss.double().to(LINALG_DEVICE)
+    inv_s = inv_s.double().to(LINALG_DEVICE)
+    w1 = w1.double().to(LINALG_DEVICE)
 
     with torch.no_grad():
         x = ss @ w1
-        u_full, sigma_full, v_full = torch.linalg.svd(x, full_matrices=False)
+        try:
+            u_full, sigma_full, v_full = torch.linalg.svd(x, full_matrices=False)
+        except torch._C._LinAlgError:
+            # LAPACK gesdd (the CPU default) can fail to converge on ill-conditioned whitened weights;
+            # the QR-based gesvd driver is slower but robust.
+            import scipy.linalg
+            print(f"gesdd failed for {name}{index}, falling back to gesvd")
+            u_np, s_np, vh_np = scipy.linalg.svd(x.cpu().numpy(), full_matrices=False, lapack_driver="gesvd")
+            u_full, sigma_full, v_full = (torch.from_numpy(a).to(x.device) for a in (u_np, s_np, vh_np))
         max_r = min(d1, d2)
         sigma_full = sigma_full[:max_r]
         u_full = u_full[:, :max_r]
@@ -77,7 +86,7 @@ def profile_layer_once(w1, name, index, calib_data, cr_candidates, L=1, ks_ratio
             results.append(res)
 
     del ss, inv_s, w1, x, u_full, sigma_full, v_full
-    torch.cuda.empty_cache()
+    empty_cache()
     return results
 
 def profile_all_layers(model, module_names, calib_data, cr_candidates, ks_ratios=[2.0]):

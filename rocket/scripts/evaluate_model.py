@@ -18,9 +18,14 @@ def main():
         cfg = yaml.safe_load(f)
 
     model_path = cfg["compression"]["output_dir"]
+    model_args = f"pretrained={model_path}"
+    # Optional context cap: rolling-window tasks (wikitext) otherwise use the model's full context, which
+    # does not fit in memory on MPS for 32k-context models.
+    if cfg["evaluation"].get("max_length"):
+        model_args += f",max_length={cfg['evaluation']['max_length']}"
     res = lm_eval.simple_evaluate(
         model="hf",
-        model_args=f"pretrained={model_path}",
+        model_args=model_args,
         tasks=cfg["evaluation"]["tasks"],
         num_fewshot=0,
         batch_size=cfg["evaluation"]["batch_size"],
