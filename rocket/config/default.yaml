@@ -9,6 +9,7 @@ calib:
   seq_len: 1024
   batch_size: 8
   seed: 2023
+  layerwise: false  # true: run decoder layers one at a time (low host/device memory; inputs Grams only)
 
 profiling:
   module_names:
