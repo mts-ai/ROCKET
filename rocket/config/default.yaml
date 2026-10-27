@@ -29,7 +29,7 @@ compression:
   param_precision: 50000
   dobi_like: false
   output_dir: "./llama3_1b_swift_svd_20_new"
-  adam_refine_steps: 100
+  adam_refine_steps: 0
   method: dijekstra
 
 evaluation:
